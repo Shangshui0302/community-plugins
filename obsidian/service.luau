@@ -481,6 +481,29 @@ local function parseRecentLine(recent, line)
   end
 end
 
+local function lineIterator(text)
+  text = tostring(text or "")
+  local length = #text
+  local position = 1
+
+  return function()
+    if position > length then
+      return nil
+    end
+
+    local newline = text:find("\n", position, true)
+    local line
+    if newline then
+      line = text:sub(position, newline - 1)
+      position = newline + 1
+    else
+      line = text:sub(position)
+      position = length + 1
+    end
+    return line
+  end
+end
+
 local refreshAll
 
 local function finishAction(command, ok, message)
@@ -563,14 +586,12 @@ refreshAll = function()
     finished = true
 
     local function applySnapshot(dailyExists, dailyPreview)
-      local recentText = tostring(bag.recent or "") .. "\n"
-      local gitText = tostring(bag.gitPorcelain or "") .. "\n"
       local branch, ahead, behind, statusLine = parseBranchLine(bag.gitBranch)
 
       pendingParse = {
         generation = generation,
-        recentLines = recentText:gmatch("(.-)\n"),
-        gitLines = gitText:gmatch("(.-)\n"),
+        recentLines = lineIterator(bag.recent),
+        gitLines = lineIterator(bag.gitPorcelain),
         recentDone = false,
         gitDone = false,
         recent = {},
